@@ -148,8 +148,7 @@ struct ComponentArray {
   template<typename T>
   T* get(){
     static_assert(ComponentInfo<T>::id < ComponentId::SIZE, "The component type is not registered!");
-    using ComponentType = typename ComponentInfo<T>::type;
-    return reinterpret_cast<ComponentType*>(slots[ComponentInfo<T>::id]);
+    return reinterpret_cast<T*>(slots[ComponentInfo<T>::id]);
   }
 
   // Clone slots(deep copy).
@@ -171,7 +170,7 @@ struct ComponentArray {
 
 private:
   template<typename T>
-  bool hasComponentImpl(){
+  inline bool hasComponentImpl(){
     static_assert(ComponentInfo<T>::id < ComponentId::SIZE, "The component type is not registered!");
     return slots[ComponentInfo<T>::id] != 0;
   }
