@@ -41,17 +41,32 @@ static std::string toLower(const char* str){
   return out;
 }
 
+// Do not using MSVC C++ ifstream(because the input tokes are incorrect)!!!
 static std::string readStringFromFile(const std::string& inputFileName){
-  std::ifstream ifs(inputFileName);
-  if(!ifs.is_open()){
-    std::cout << "Error: Cannot open input file [" << inputFileName << "]" << std::endl;
+  FILE *file;
+  long file_size;
+  size_t result;
+
+  file = fopen(inputFileName.c_str(), "rb");
+  if (file == NULL) {
+    std::cout << "Error: Cannot Read file [" << inputFileName << "]" << std::endl;
     return {};
   }
+
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  rewind(file);
+
   std::string str;
-  ifs >> str;
-  if(str.empty()){
-    std::cout << "Error: Input file [" << inputFileName << "] is empty." << std::endl;
+  str.resize((size_t)file_size, 0);
+  result = fread(str.data(), 1, file_size, file);
+  if (result != file_size) {
+    fclose(file);
+    std::cout << "Error: Cannot Read file [" << inputFileName << "]" << std::endl;
+    return {};
   }
+  fclose(file);
+
   return str;
 };
 
