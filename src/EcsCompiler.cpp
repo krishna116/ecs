@@ -14,14 +14,7 @@ struct ComponentInfo{
 using ComponentInfoTable = std::vector<ComponentInfo>;
 
 static std::string toInstName(std::string compName){
-  bool hasUpperLetter = false;
-  for(auto& c : compName){
-    if(std::isupper(c)){
-      hasUpperLetter = true;
-      break;
-    }
-  }
-  if(hasUpperLetter){
+  if(std::isupper(compName[0])){
     compName[0] = std::tolower(compName[0]);
     return compName;
   }else{
