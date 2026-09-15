@@ -234,7 +234,7 @@ bool CppParser::isValid(const ClassNameTable &classNameTable) {
   std::set<std::string> classNameSet;
 
   auto dumpComponents = [&](){
-    std::string error{"Dump Components:\n"};
+    std::string error{"Dump all the components:\n"};
     size_t number = 1;
     for(auto& name : classNameTable){
       error += "[" + std::to_string(number) + "] " + name + "\n";
