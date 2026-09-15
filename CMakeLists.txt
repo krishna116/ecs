@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.0)
 
-project(ecs VERSION 1.0.1 LANGUAGES C CXX)
+project(ecs VERSION 1.0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
