@@ -114,7 +114,10 @@ quota(xor_eq)
 CppParser::ClassNameTable CppParser::parse(const std::string &cppSourceCode) {
   clearLastError();
 
-  auto trimmedCode = trimTokens(cppSourceCode);
+  auto commentErased = eraseComment(cppSourceCode);
+  auto defineErased = eraseDefine(commentErased);
+  auto trimmedCode = trimTokens(defineErased);
+  
   if (trimmedCode.empty()) return {};
 
   std::regex pattern(R"(\s*(class|struct)\s+(\w+)\s*)");
@@ -230,7 +233,202 @@ std::string CppParser::trimBracePair(const std::string &str) {
   return out;
 }
 
-bool CppParser::isValid(const ClassNameTable &classNameTable) {
+std::string CppParser::eraseDefine(const std::string &source) {
+  auto trimFrontSpace = [](const std::string &s)->std::string {
+    size_t start = s.find_first_not_of(" \t\r\f\v");
+    if (start == std::string::npos)
+      return {};
+    return s.substr(start);
+  };
+
+  auto trimBackSpace = [](const std::string &s)->std::string {
+    size_t end = s.find_last_not_of(" \t\r\f\v");
+    if (end == std::string::npos)
+      return {};
+    return s.substr(0, end + 1);
+  };
+
+  auto trimSpace = [&](const std::string &s) {
+    return trimFrontSpace(trimBackSpace(s));
+  };
+
+  auto isDefineStart = [](const std::string &trimmedLine) {
+    if(trimmedLine[0] != '#') return false;
+
+    size_t size = trimmedLine.size();
+    size_t i = 1;
+    while(i < size){
+      if(std::isspace(static_cast<unsigned char>(trimmedLine[i]))){
+        ++i;
+        continue;
+      }else{
+        break;
+      }
+    }
+
+    if(i >= size || trimmedLine[i] != 'd') return false;
+    if(++i >= size || trimmedLine[i] != 'e') return false;
+    if(++i >= size || trimmedLine[i] != 'f') return false;
+    if(++i >= size || trimmedLine[i] != 'i') return false;
+    if(++i >= size || trimmedLine[i] != 'n') return false;
+    if(++i >= size || trimmedLine[i] != 'e') return false;
+    if(++i >= size || !std::isspace(static_cast<unsigned char>(trimmedLine[i]))) return false;
+
+    return true;
+  };
+
+  auto endWidthBackSlash = [](const std::string &trimmedLine) {
+    return trimmedLine.back() == '\\';
+  };
+
+  // Start work here.
+  if (source.empty())
+    return {};
+
+  std::vector<std::string> lineArray;
+  std::string line;
+
+  for (char c : source) {
+    if (c == '\n') {
+      std::string trimmed = trimSpace(line);
+      if (!trimmed.empty()) {
+        lineArray.push_back(trimmed);
+      }
+      line.clear();
+    } else {
+      line.push_back(c);
+    }
+  }
+
+  std::string lastLine = trimSpace(line);
+  if (!lastLine.empty()) {
+    lineArray.push_back(lastLine);
+  }
+
+  std::string out;
+  bool inMacro = false;
+  for (const auto &line : lineArray) {
+    if (inMacro) {
+      if (endWidthBackSlash(line)) {
+        continue;
+      } else {
+        inMacro = false;
+        continue;
+      }
+    }
+
+    if (isDefineStart(line)) {
+      if (endWidthBackSlash(line)) {
+        inMacro = true;
+      }
+      continue;
+    }
+
+    out += line + "\n";
+  }
+
+  return out;
+}
+
+std::string CppParser::eraseComment(const std::string& source) {
+  std::string result;
+
+  const size_t len = source.size();
+  result.reserve(len);
+
+  size_t i = 0;
+  size_t line = 1;
+
+  auto advance = [&](size_t n) {
+    i += n;
+    if(source[i] == '\n') ++line;
+  };
+
+  while (i < len) {
+    if (i + 1 >= len) {
+      result += source[i];
+      advance(1);
+      continue;
+    }
+
+    char current = source[i];
+    char next = source[i+1];
+
+    if (current == '/' && next == '/') {
+      advance(2);
+      while (i < len && source[i] != '\n') {
+        advance(1);
+      }
+      if (i < len) {
+        result += '\n';
+        advance(1);
+      }
+    } else if (current == '/' && next == '*') {
+      size_t startLine = line;
+      bool foundEnd = false;
+      advance(2);
+      while (i < len) {
+        if (source[i] == '*' && i + 1 < len && source[i+1] == '/') {
+          advance(2);
+          foundEnd = true;
+          break;
+        }
+        if (source[i] == '\n') {
+          result += '\n';
+        }
+        advance(1);
+      }
+      if (!foundEnd) {
+        //error = "[file line = " + std::to_string(startLine) + "] ";
+        //error += "The comment is not closed correctly.";
+        return {};
+      }
+    } else if (current == '"') {
+      result += current;
+      advance(1);
+      while (i < len && source[i] != '"') {
+        if (source[i] == '\\' && i + 1 < len) {
+          result += source[i];
+          ++i;
+          result += source[i+1];
+          advance(2);
+        } else {
+          result += source[i];
+          advance(1);
+        }
+      }
+      if (i < len) {
+        result += source[i];
+        advance(1);
+      }
+    } else if (current == '\'') {
+      result += current;
+      advance(1);
+      while (i < len && source[i] != '\'') {
+        if (source[i] == '\\' && i + 1 < len) {
+          result += source[i];
+          advance(1);
+          result += source[i+1];
+          advance(2);
+        } else {
+          result += source[i];
+          advance(1);
+        }
+      }
+      if (i < len) {
+        result += source[i];
+        advance(1);
+      }
+    } else {
+      result += current;
+      advance(1);
+    }
+  }
+
+  return result;
+}
+
+bool CppParser::isValid(ClassNameTable &classNameTable) {
   std::set<std::string> classNameSet;
 
   auto dumpComponents = [&](){
@@ -244,12 +442,6 @@ bool CppParser::isValid(const ClassNameTable &classNameTable) {
   };
 
   for (auto &className : classNameTable) {
-    auto result = classNameSet.insert(className);
-    if (!result.second) {
-      std::string error = "Error: the component name [" + className + "] is duplicated. " + dumpComponents();
-      setLastError(error);
-      return false;
-    }
     if (std::isdigit(className[0])) {
       std::string error = "Error: the component name [" + className + "] cannot begin with digit. " + dumpComponents();
       setLastError(error);
@@ -262,6 +454,12 @@ bool CppParser::isValid(const ClassNameTable &classNameTable) {
         return false;
       }
     }
+    classNameSet.insert(className);
+  }
+
+  classNameTable.clear();
+  for(auto& className : classNameSet){
+    classNameTable.push_back(className);
   }
 
   int tableSize = (int)classNameTable.size();
