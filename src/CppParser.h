@@ -25,5 +25,5 @@ private:
 
   void clearLastError();
   void setLastError(std::string error);
-  bool isValid(ClassNameTable& classNameTable);
+  bool isValid(const ClassNameTable& classNameTable);
 };
