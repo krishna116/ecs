@@ -1,6 +1,5 @@
 #include <cctype>
 #include <cstddef>
-#include <set>
 
 #include "config.h"
 #include "CppLexer.h"
@@ -116,6 +115,17 @@ inline CppParser::ClassNameTable toClassNameTable(CppLexer::TokenArray& tokens, 
   size_t n = tokens.size();
   size_t i = 0;
   good = true;
+
+  auto addClassName = [&](const std::string& name){
+    bool found = false;
+    for(auto& existName : classNameTable){
+      if(existName == name){
+        found = true;
+        break;
+      }
+    }
+    if(!found) classNameTable.push_back(name);
+  };
   
   while (i < n) {
     while(i<n && tokens[i].type == Token::Type::Space || tokens[i].type ==  Token::Type::CName) ++i;
@@ -136,7 +146,7 @@ inline CppParser::ClassNameTable toClassNameTable(CppLexer::TokenArray& tokens, 
     }
 
     if(i < n && tokens[i].type == Token::Type::CName){
-      classNameTable.push_back(tokens[i].name);
+      addClassName(tokens[i].name);
       ++i;
     }else{
       good = false;
@@ -146,7 +156,6 @@ inline CppParser::ClassNameTable toClassNameTable(CppLexer::TokenArray& tokens, 
 
   return classNameTable;
 }
-
 
 CppParser::ClassNameTable CppParser::parse(const std::string &cppSourceCode) {
   clearLastError();
@@ -183,8 +192,7 @@ void CppParser::clearLastError() { mLastError.clear(); }
 
 void CppParser::setLastError(std::string error) { mLastError = error; }
 
-bool CppParser::isValid(ClassNameTable &classNameTable) {
-  std::set<std::string> classNameSet;
+bool CppParser::isValid(const ClassNameTable &classNameTable) {
 
   auto dumpComponents = [&](){
     std::string error{"Dump all the components:\n"};
@@ -197,11 +205,6 @@ bool CppParser::isValid(ClassNameTable &classNameTable) {
   };
 
   for (auto &className : classNameTable) {
-    if (std::isdigit(className[0])) {
-      std::string error = "Error: the component name [" + className + "] cannot begin with digit. " + dumpComponents();
-      setLastError(error);
-      return false;
-    }
     for (auto &key : keywords) {
       if (className == key) {
         std::string error = "Error: the component name [" + className + "] is a C++ keyword. " + dumpComponents();
@@ -209,12 +212,6 @@ bool CppParser::isValid(ClassNameTable &classNameTable) {
         return false;
       }
     }
-    classNameSet.insert(className);
-  }
-
-  classNameTable.clear();
-  for(auto& className : classNameSet){
-    classNameTable.push_back(className);
   }
 
   int tableSize = (int)classNameTable.size();
