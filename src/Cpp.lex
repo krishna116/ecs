@@ -100,6 +100,7 @@ static bool lex_float_number(const char *s){
   re2c:yyfill:enable = 0;
   re2c:YYCURSOR = s;
   */
+
 mant_int:
   /*!re2c
   "."   { goto mant_frac; }
@@ -136,20 +137,22 @@ static bool lex(LexContext &ctx){
   for (;;) {
     ctx.tok = ctx.curser;
     /*!re2c
+    re2c:yyfill:enable = 0;
     re2c:YYCURSOR = ctx.curser;
     re2c:YYMARKER = ctx.marker;
     re2c:YYLIMIT = ctx.limit;
+    re2c:sentinel = 0;
 
     *      { return 0; }
     [\x00] { return 1; }
 
     // macros
-    macro = ("#" | "%:") ([^\n] | "\\\n")* "\n";
+    macro = ("#" | "%:") ([^\n\x00] | "\\\n")* "\n";
     macro { continue; }
 
     // whitespaces
-    mcm = "/*" ([^*] | ("*" [^/]))* "*""/";
-    scm = "//" [^\n]* "\n";
+    mcm = "/*" ([^*\x00] | ("*" [^/\x00]))* "*""/";
+    scm = "//" [^\n\x00]* "\n";
     wsp = ([ \t\v\n\r] | scm | mcm)+;
     wsp { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
 
