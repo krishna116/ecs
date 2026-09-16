@@ -118,7 +118,7 @@ inline CppParser::ClassNameTable toClassNameTable(CppLexer::TokenArray& tokens, 
   good = true;
   
   while (i < n) {
-    while(i<n && tokens[i].type == Token::Type::Space) ++i;
+    while(i<n && tokens[i].type == Token::Type::Space || tokens[i].type ==  Token::Type::CName) ++i;
     if(i >= n) break;
 
     if(tokens[i].type == Token::Type::Class){
