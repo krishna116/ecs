@@ -237,8 +237,8 @@ static bool lex(LexContext &ctx){
     "while"            { continue; }
 
     // operators and punctuation (including preprocessor)
-    ("{" | "<%")      { continue; }
-    ("}" | "%>")      { continue; }
+    ("{" | "<%")      { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
+    ("}" | "%>")      { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
     ("[" | "<:")      { continue; }
     ("]" | ":>")      { continue; }
     "("               { continue; }
