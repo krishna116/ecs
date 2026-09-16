@@ -25,11 +25,5 @@ private:
 
   void clearLastError();
   void setLastError(std::string error);
-  bool isBraceBalanced(const std::string &str);
-  std::string trimTokens(const std::string& str);
-  std::string trimNameSpace(const std::string &str);
-  std::string trimBracePair(const std::string &str);
-  std::string eraseDefine(const std::string &source);
-  std::string eraseComment(const std::string& source);
   bool isValid(ClassNameTable& classNameTable);
 };
