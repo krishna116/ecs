@@ -143,8 +143,8 @@ static bool lex(LexContext &ctx){
     re2c:YYLIMIT = ctx.limit;
     re2c:sentinel = 0;
 
-    *      { return 0; }
-    [\x00] { return 1; }
+    *      { ctx.tokenArray.emplace_back(Token{Token::Type::Eof, "Failed"}); return 0; }
+    [\x00] { ctx.tokenArray.emplace_back(Token{Token::Type::Eof, "Success"}); return 1; }
 
     // macros
     macro = ("#" | "%:") ([^\n\x00] | "\\\n")* "\n";
@@ -154,7 +154,7 @@ static bool lex(LexContext &ctx){
     mcm = "/*" ([^*\x00] | ("*" [^/\x00]))* "*""/";
     scm = "//" [^\n\x00]* "\n";
     wsp = ([ \t\v\n\r] | scm | mcm)+;
-    wsp { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
+    wsp { continue; }
 
     // character and string literals
     "L"? ['"] { if (!lex_str(ctx, ctx.curser[-1])) return false; continue; }
@@ -208,7 +208,7 @@ static bool lex(LexContext &ctx){
     "int"              { continue; }
     "long"             { continue; }
     "mutable"          { continue; }
-    "namespace"        { continue; }
+    "namespace"        { ctx.tokenArray.emplace_back(Token{Token::Type::Namespace, "struct"}); continue; }
     "operator"         { continue; }
     "private"          { continue; }
     "protected"        { continue; }
@@ -240,13 +240,13 @@ static bool lex(LexContext &ctx){
     "while"            { continue; }
 
     // operators and punctuation (including preprocessor)
-    ("{" | "<%")      { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
-    ("}" | "%>")      { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
+    ("{" | "<%")      { ctx.tokenArray.emplace_back(Token{Token::Type::LeftBrace, "{"}); continue; }
+    ("}" | "%>")      { ctx.tokenArray.emplace_back(Token{Token::Type::RightBrace, "}"}); continue; }
     ("[" | "<:")      { continue; }
     ("]" | ":>")      { continue; }
     "("               { continue; }
     ")"               { continue; }
-    ";"               { ctx.tokenArray.emplace_back(Token{Token::Type::Space, " "}); continue; }
+    ";"               { continue; }
     ":"               { continue; }
     "..."             { continue; }
     "new"             { continue; }
@@ -294,7 +294,7 @@ static bool lex(LexContext &ctx){
 
     // identifiers
     id = [a-zA-Z_][a-zA-Z_0-9]*;
-    id { ctx.tokenArray.emplace_back(Token{Token::Type::CName, std::string(ctx.tok, ctx.curser - ctx.tok)}); continue; }
+    id { ctx.tokenArray.emplace_back(Token{Token::Type::Identifier, std::string(ctx.tok, ctx.curser - ctx.tok)}); continue; }
 */
 sfx:
   /*!re2c
