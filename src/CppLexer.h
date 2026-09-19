@@ -8,13 +8,16 @@ class CppLexer {
 public:
   struct Token {
     enum class Type {
-      Space,
+      Eof,
+      LeftBrace,
+      RightBrace,
+      Namespace,
       Class,
-      CName,
+      Identifier,
     };
     Type type;
     std::string name;
-    Token(Type type_ = Type::Space, std::string name_ = {}) : type(type_), name(name_) {}
+    Token(Type type_ = Type::Eof, std::string name_ = {}) : type(type_), name(name_) {}
   };
   using TokenArray = std::vector<Token>;
 
